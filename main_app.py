@@ -79,16 +79,35 @@ while True:
     cv2.putText(tile5_full_mesh, '5. Full Mesh', (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     # Tile 6: MAIN TILE - Drowsiness Detection
-    tile6_main = cv2.resize(frame.copy(), TILE_SIZE)
+    # Noise-reduced (processed) frame ko base banaya hai
+    tile6_main = tile2_processed.copy()
     if results.multi_face_landmarks:
         face_landmarks = results.multi_face_landmarks[0]
         
-        h, w, _ = tile6_main.shape
+        h, w = TILE_SIZE[1], TILE_SIZE[0]
         pixel_landmarks = np.array([(int(lm.x * w), int(lm.y * h)) for lm in face_landmarks.landmark])
 
         avg_ear = (calculate_ear(pixel_landmarks, LEFT_EYE_INDICES) + calculate_ear(pixel_landmarks, RIGHT_EYE_INDICES)) / 2.0
         mar = calculate_mar(pixel_landmarks, MOUTH_INDICES)
         
+        # --- Landmark Highlighting ---
+        # Aankhon ke landmarks (Cyan color) aur outlines
+        mp_drawing.draw_landmarks(
+            image=tile6_main, landmark_list=face_landmarks,
+            connections=mp_face_mesh.FACEMESH_LEFT_EYE, landmark_drawing_spec=None,
+            connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 0), thickness=1))
+        mp_drawing.draw_landmarks(
+            image=tile6_main, landmark_list=face_landmarks,
+            connections=mp_face_mesh.FACEMESH_RIGHT_EYE, landmark_drawing_spec=None,
+            connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 0), thickness=1))
+
+        # Munh ke landmarks (Green color) aur outlines
+        mp_drawing.draw_landmarks(
+            image=tile6_main, landmark_list=face_landmarks,
+            connections=mp_face_mesh.FACEMESH_LIPS, landmark_drawing_spec=None,
+            connection_drawing_spec=mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=1))
+
+        # --- Status Display ---
         drowsy_status = "Awake"
         status_color = (0, 255, 0)
         if avg_ear < EAR_THRESHOLD:
