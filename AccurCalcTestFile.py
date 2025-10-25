@@ -6,7 +6,7 @@ import time
 from sound_manager import init_sound, load_alarm, play_alarm, stop_alarm
 from utils import calculate_ear, calculate_mar, preprocess_frame, LEFT_EYE_INDICES, RIGHT_EYE_INDICES, MOUTH_INDICES
 # add these near the top with other imports
-# from predictions_logger import log_prediction
+from predictions_logger import log_prediction
 
 
 # --- Sound Setup ---
@@ -33,8 +33,8 @@ CONSECUTIVE_FRAMES_THRESHOLD = 45
 
 cap = cv2.VideoCapture(0)
 # session id to identify this run (useful when you have multiple videos)
-# VIDEO_ID = "live"   # change to filename if evaluating saved videos
-# frame_counter = 0
+VIDEO_ID = "live"   # change to filename if evaluating saved videos
+frame_counter = 0
 
 if not cap.isOpened():
     print("Error:Unable to open the Webcam.")
@@ -114,37 +114,37 @@ while True:
         avg_ear = (calculate_ear(pixel_landmarks, LEFT_EYE_INDICES) + calculate_ear(pixel_landmarks, RIGHT_EYE_INDICES)) / 2.0
         mar = calculate_mar(pixel_landmarks, MOUTH_INDICES)
         
-        # # determine frame-level predicted label using your thresholds
-        # pred_score = avg_ear  # for example we use avg_ear as the score (lower -> drowsy)
-        # # Choose prediction rule consistent with your system: avg_ear < EAR_THRESHOLD => drowsy
-        # if avg_ear < EAR_THRESHOLD:
-        #     pred_label = "drowsy"
-        # else:
-        #     pred_label = "awake"
+        # determine frame-level predicted label using your thresholds
+        pred_score = avg_ear  # for example we use avg_ear as the score (lower -> drowsy)
+        # Choose prediction rule consistent with your system: avg_ear < EAR_THRESHOLD => drowsy
+        if avg_ear < EAR_THRESHOLD:
+            pred_label = "drowsy"
+        else:
+            pred_label = "awake"
 
-        # # If you maintain gamma_value in preprocess_frame, make sure you have gamma variable accessible here.
-        # # We assume preprocess_frame returned processed_frame already; if not, you can set gamma_used = None
-        # gamma_used = 0.0  # if you don't have gamma available here, set to 0.0 or pass actual variable
-        # if results.multi_face_landmarks is None:
-        #     # log as awake (or use 'no_face' label if you want to treat differently)
-        #     pred_label = "awake"
-        #     avg_ear = 0.0
-        #     mar = 0.0
+        # If you maintain gamma_value in preprocess_frame, make sure you have gamma variable accessible here.
+        # We assume preprocess_frame returned processed_frame already; if not, you can set gamma_used = None
+        gamma_used = 0.0  # if you don't have gamma available here, set to 0.0 or pass actual variable
+        if results.multi_face_landmarks is None:
+            # log as awake (or use 'no_face' label if you want to treat differently)
+            pred_label = "awake"
+            avg_ear = 0.0
+            mar = 0.0
 
 
-        # # log prediction to CSV
-        # log_prediction(
-        #     video_id=VIDEO_ID,
-        #     frame_idx=frame_counter,
-        #     gt_label="",              # leave empty; annotate offline later or set if you have live GT
-        #     pred_label=pred_label,
-        #     pred_score=pred_score,
-        #     avg_ear=avg_ear,
-        #     mar=mar,
-        #     gamma_used=gamma_used
-        # )
+        # log prediction to CSV
+        log_prediction(
+            video_id=VIDEO_ID,
+            frame_idx=frame_counter,
+            gt_label="",              # leave empty; annotate offline later or set if you have live GT
+            pred_label=pred_label,
+            pred_score=pred_score,
+            avg_ear=avg_ear,
+            mar=mar,
+            gamma_used=gamma_used
+        )
 
-        # frame_counter += 1
+        frame_counter += 1
 
         
         mp_drawing.draw_landmarks(image=tile6_main, landmark_list=face_landmarks, connections=mp_face_mesh.FACEMESH_LEFT_EYE, landmark_drawing_spec=None, connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 0), thickness=1))
