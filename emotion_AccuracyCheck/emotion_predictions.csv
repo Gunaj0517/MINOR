@@ -1,0 +1,14 @@
+frame_id,timestamp,ground_truth_emotion,predicted_emotion,smile_score,frown_score,jaw_open_score,brow_down_score,eye_wide_score
+1,1761385000.123,Neutral,Neutral,0.05,0.01,0.1,0.08,0.02
+2,1761385000.234,Neutral,Neutral,0.04,0.02,0.1,0.07,0.03
+3,1761385000.345,Happy,Neutral,0.05,0.01,0.09,0.08,0.02
+4,1761385000.456,Happy,Happy,0.62,0.0,0.15,0.02,0.05
+5,1761385000.567,Happy,Happy,0.71,0.0,0.18,0.01,0.06
+6,1761385000.678,Happy,Happy,0.68,0.0,0.17,0.02,0.05
+7,1761385000.789,Neutral,Neutral,0.15,0.03,0.05,0.04,0.01
+8,1761385000.890,Sad,Sad,0.02,0.55,0.04,0.15,0.02
+9,1761385000.901,Sad,Sad,0.03,0.61,0.05,0.18,0.01
+10,1761385001.123,Angry,Sad,0.02,0.58,0.04,0.16,0.02
+11,1761385001.234,Surprised,Surprised,0.05,0.02,0.45,0.01,0.51
+12,1761385001.345,Surprised,Surprised,0.04,0.01,0.52,0.01,0.55
+13,1761385001.456,Neutral,Neutral,0.03,0.03,0.02,0.05,0.03
