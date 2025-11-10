@@ -53,7 +53,7 @@ print("Initialization completed.")
 # ========================================================================
 EAR_THRESHOLD = 0.25
 MAR_THRESHOLD = 0.5
-CONSECUTIVE_FRAMES_THRESHOLD = 60  # lower while testing e.g. 20
+CONSECUTIVE_FRAMES_THRESHOLD = 25  # lower while testing e.g. 20
 HEAD_TILT_THRESHOLD = -0.08
 GESTURE_COOLDOWN = 1.0  # seconds
 
