@@ -6,8 +6,6 @@ import pyautogui
 import pygame
 import csv
 from fer import FER
-
-# ========================= CUSTOM MODULES IMPORT =============================
 from utils import calculate_ear, calculate_mar, LEFT_EYE_INDICES, RIGHT_EYE_INDICES, MOUTH_INDICES
 from sound_manager import init_sound, load_alarm, play_alarm, stop_alarm
 
@@ -17,13 +15,11 @@ except ImportError:
     print("Error: gesture.py missing!")
     exit()
 
-# ========================= INITIALIZATION ===================================
-# ----- Sound -----
+# INITIALIZATION
 init_sound()
 ALARM_SOUND_SLEEPY = load_alarm("alarm.mp3")
 ALARM_SOUND_DROWSY = load_alarm("wakeMe.mp3")
 
-# ----- Mediapipe -----
 mp_face_mesh = mp.solutions.face_mesh
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -41,13 +37,12 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.7
 )
 
-# ----- Emotion Detector -----
 emotion_detector = FER(mtcnn=True)
 
-# ========================= PARAMETERS =======================================
+# PARAMETERS 
 EAR_THRESHOLD = 0.25
 MAR_THRESHOLD = 0.5
-CONSECUTIVE_FRAMES_THRESHOLD = 20
+CONSECUTIVE_FRAMES_THRESHOLD = 15
 HEAD_TILT_THRESHOLD = -0.08
 
 last_gesture_time = 0
@@ -58,10 +53,9 @@ is_sleepy_alarm_playing = False
 is_drowsy_alarm_playing = False
 detected_gesture = "None"
 
-# ========================= ACCURACY TESTING VARIABLES ========================
-# We're using Option A: track only these 4 gestures.
-true_labels = []   # numeric labels from keypress (1..4)
-pred_labels = []   # numeric predicted labels (1..4 or 0 for unknown)
+true_labels = []   
+pred_labels = []   
+
 gesture_mapping = {
     "Thumbs Up": 1,
     "Thumbs Down": 2,
@@ -70,23 +64,33 @@ gesture_mapping = {
 }
 label_to_name = {v: k for k, v in gesture_mapping.items()}
 
+try:
+    with open("gesture_accuracy.csv", "r") as f:
+        reader = csv.reader(f)
+        header = next(reader, None)  # Skip header
+
+        for row in reader:
+            if len(row) >= 2:
+                true_labels.append(int(row[0]))
+                pred_labels.append(int(row[1]))
+
+    print(f"[LOADED] {len(true_labels)} previous gesture samples loaded from gesture_accuracy.csv")
+
+except FileNotFoundError:
+    print("No previous gesture_accuracy.csv found. Starting fresh.")
+
 def compute_accuracy():
-    """Compute accuracy and build 4x4 confusion matrix for gestures 1..4."""
     if not true_labels:
         return "No accuracy data recorded yet."
 
     total = len(true_labels)
     correct = sum(1 for t, p in zip(true_labels, pred_labels) if t == p)
     acc = (correct / total) * 100
-
-    # confusion matrix rows=true (1..4), cols=pred (1..4)
     matrix = np.zeros((4, 4), dtype=int)
+
     for t, p in zip(true_labels, pred_labels):
         if 1 <= t <= 4 and 1 <= p <= 4:
             matrix[t-1][p-1] += 1
-        elif 1 <= t <= 4 and (p < 1 or p > 4):
-            # count unknown predictions in a separate column-like print (we won't add column)
-            pass
 
     text = f"\n=== ACCURACY REPORT ===\n" \
            f"Total Samples: {total}\n" \
@@ -94,7 +98,6 @@ def compute_accuracy():
            f"Accuracy: {acc:.2f}%\n\n" \
            f"Confusion Matrix (rows=true 1..4, cols=pred 1..4):\n{matrix}\n"
 
-    # add per-class breakdown
     per_class = ""
     for cls in range(1, 5):
         idxs = [i for i, t in enumerate(true_labels) if t == cls]
@@ -106,7 +109,7 @@ def compute_accuracy():
 
     return text + "\n" + per_class
 
-# ========================= VIDEO CAPTURE =====================================
+
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Error: Webcam could not open.")
@@ -115,7 +118,7 @@ if not cap.isOpened():
 prev_time = 0
 print("Running... press 'q' to quit. Keys: 1(ThumbsUp) 2(ThumbsDown) 3(OpenPalm) 4(Victory) A(accuracy) S(save CSV)")
 
-# ========================= GESTURE ACTION FUNCTION ===========================
+# GESTURE ACTION FUNCTION
 def perform_gesture_action(gesture):
     print("Action for:", gesture)
     if gesture == "Thumbs Up":
@@ -127,7 +130,6 @@ def perform_gesture_action(gesture):
     elif gesture == "Victory":
         pyautogui.press("nexttrack")
 
-# ========================= MAIN LOOP ========================================
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -136,8 +138,6 @@ while True:
     frame = cv2.flip(frame, 1)
     display_frame = frame.copy()
     h, w, _ = frame.shape
-
-    # reset detected gesture each frame to avoid stale display when no hand present
     detected_gesture = "None"
 
     # FPS
@@ -153,7 +153,7 @@ while True:
 
     rgb_frame.flags.writeable = True
 
-    # ======================= EMOTION DETECTION ===============================
+    # EMOTION DETECTION
     emotion_text = "Emotion: None"
     emotion_color = (255, 255, 255)
 
@@ -164,7 +164,7 @@ while True:
         emotion_text = f"Emotion: {top_emotion} ({emotions[top_emotion]:.2f})"
         emotion_color = (0, 255, 255)
 
-    # ======================= DROWSINESS DETECTION =============================
+    # DROWSINESS DETECTION
     drowsy_status = "Awake"
     status_color = (0, 255, 0)
     is_sleepy = False
@@ -196,7 +196,7 @@ while True:
         if mar > MAR_THRESHOLD:
             is_yawning = True
 
-        # ----- SLEEPY + YAWNING = HIGH ALERT -----
+        # SLEEPY + YAWNING = HIGH ALERT
         if is_sleepy and is_yawning:
             drowsy_status = "DROWSY!!"
             status_color = (255, 0, 255)
@@ -225,7 +225,6 @@ while True:
             is_sleepy_alarm_playing = False
             is_drowsy_alarm_playing = False
 
-        # Left side printed info
         cv2.putText(display_frame, f"EAR: {avg_ear:.2f}", (20, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
 
@@ -241,11 +240,10 @@ while True:
         cv2.putText(display_frame, f"Looking Down: {is_looking_down}", (20, 240),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 165, 255), 2)
 
-        # EMOTION ON LEFT SIDE
         cv2.putText(display_frame, emotion_text, (20, 280),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, emotion_color, 2)
 
-    # ======================= HAND GESTURE DETECTION ==========================
+    # HAND GESTURE DETECTION
     if results_hands.multi_hand_landmarks:
         for hand_landmarks in results_hands.multi_hand_landmarks:
             mp_drawing.draw_landmarks(display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
@@ -258,7 +256,6 @@ while True:
                     perform_gesture_action(gesture)
                     last_gesture_time = current_time
 
-    # ======================= DISPLAY TEXT ====================================
     cv2.putText(display_frame, f"FPS: {int(fps)}", (w - 150, 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
@@ -268,20 +265,16 @@ while True:
     cv2.putText(display_frame, f"Gesture: {detected_gesture}", (w - 320, h - 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-    # Show small legend for accuracy keys
     cv2.putText(display_frame, "1 : ThumbsUp 2 : ThumbsDown 3 : OpenPalm 4 : Victory  A : Acc  S : Save", (10, h - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
 
     cv2.imshow("Combined Driver Monitoring System", display_frame)
-
-    # ======================= KEY HANDLER (for accuracy testing + quit) ========
     key = cv2.waitKey(1) & 0xFF
 
     if key in [ord('1'), ord('2'), ord('3'), ord('4')]:
-        # user labels the gesture they just performed as ground truth
         true = int(chr(key))
         true_labels.append(true)
-        pred = gesture_mapping.get(detected_gesture, 0)  # 0 = unknown / not one of the 4 tracked
+        pred = gesture_mapping.get(detected_gesture, 0)  
         pred_labels.append(pred)
         print(f"[RECORDED] True={true} ({label_to_name[true]}), Pred={pred} ({detected_gesture})")
 
@@ -299,18 +292,16 @@ while True:
         with open("gesture_accuracy.csv", "a", newline="") as f:
             writer = csv.writer(f)
 
-            # write header ONLY if file is new
             if not file_exists:
                 writer.writerow(["True", "Predicted"])
 
-            # append all current session samples
             for t, p in zip(true_labels, pred_labels):
                 writer.writerow([t, p])
         print("Appended new samples to: gesture_accuracy.csv")
+
     elif key == ord('q') or key == ord('Q'):
         break
 
-# ======================= CLEANUP ===========================================
 stop_alarm()
 cap.release()
 face_mesh.close()
